@@ -12,11 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package pack
+package binary
 
-import "io"
+import (
+	"encoding/binary"
+)
 
-type Sample struct {
-	Name string
-	Data io.Reader
+type Reader []byte
+
+func (r *Reader) Uint8() uint8 {
+	v := (*r)[0]
+	*r = (*r)[1:]
+	return v
+}
+
+func (r *Reader) Uint32() uint32 {
+	v := binary.LittleEndian.Uint32(*r)
+	*r = (*r)[4:]
+	return v
+}
+
+func (r *Reader) Section(n int) *Reader {
+	r2 := (*r)[:n]
+	*r = (*r)[n:]
+	return &r2
 }

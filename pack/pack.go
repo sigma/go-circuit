@@ -20,7 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 
+	"github.com/go-audio/wav"
+	"github.com/orcaman/writerseeker"
+	"github.com/sigma/go-circuit/internal/binary"
 	"github.com/sigma/go-circuit/model"
 	"gitlab.com/gomidi/midi/reader"
 )
@@ -31,6 +35,9 @@ type Pack struct {
 	Projects []*Project
 	Samples  []*Sample
 	Patches  []*Patch
+
+	rawSamples []byte
+	inSamples  bool
 }
 
 func (p *Pack) Write(w io.Writer, f *model.Flavor) error {
@@ -118,13 +125,36 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 		w.Write(project.Format(&ProjectConfig{Flavor: f}))
 	}
 
+	zw.CreateHeader(&zip.FileHeader{
+		Name: "samples/",
+	})
+
 	for i := 0; i < f.NumberSamples; i++ {
 		fname := fmt.Sprintf("samples/sample_%d.wav", i)
 
+		sample := &Sample{}
+
+		if i < len(p.Samples) {
+			sample = p.Samples[i]
+		}
+
 		idx.Samples = append(idx.Samples, &packObject{
-			Name: "",
+			Name: sample.Name,
 			Path: fname,
 		})
+
+		// TODO: normalize wav format if needed
+		if sample.Data != nil {
+			w, err := zw.Create(fname)
+			if err != nil {
+				return err
+			}
+			data, err := ioutil.ReadAll(sample.Data)
+			if err != nil {
+				return err
+			}
+			w.Write(data)
+		}
 	}
 
 	zw.CreateHeader(&zip.FileHeader{
@@ -167,14 +197,13 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 }
 
 func (p *Pack) readCircuit(r io.Reader) error {
-	prefix := append(
-		manufacturerID,
-		0x01,
-		0x60,
-	)
+	samplePrefix := append(manufacturerID, 0x00)
+	patchPrefix := append(manufacturerID, 0x01, 0x60)
 
 	syxReader := func(_ *reader.Position, data []byte) {
-		if bytes.Equal(prefix, data[:len(prefix)]) {
+		if bytes.Equal(samplePrefix, data[:len(samplePrefix)]) {
+			p.readSysexData(data[len(samplePrefix):])
+		} else if bytes.Equal(patchPrefix, data[:len(patchPrefix)]) {
 			p.Patches = append(p.Patches, &Patch{data: data[8:]})
 		}
 	}
@@ -185,5 +214,98 @@ func (p *Pack) readCircuit(r io.Reader) error {
 		return err
 	}
 
+	return nil
+}
+
+func unpack(data []byte) []byte {
+	res := make([]byte, 256)
+
+	var (
+		loop     byte = 7
+		highBits byte = 0
+		idx      int  = 0
+	)
+	for _, b := range data {
+		if loop < 7 {
+			if (highBits & (1 << loop)) != 0 {
+				b += 0x80
+			}
+			res[idx] = b
+			loop++
+			idx++
+		} else {
+			highBits = b
+			loop = 0
+		}
+	}
+
+	return res
+}
+
+func (p *Pack) parseSamples() error {
+	r := binary.Reader(p.rawSamples)
+	n := int(r.Uint8())
+	for i := 0; i < n; i++ {
+		channels := r.Uint8()
+		bits := r.Uint8()
+		rate := r.Uint32()
+
+		writer := &writerseeker.WriterSeeker{}
+
+		e := wav.NewEncoder(writer,
+			int(rate),
+			int(bits),
+			int(channels),
+			1)
+		defer e.Close()
+
+		length := r.Uint32()
+		size := uint32(bits / 8)
+		nframes := length / size
+		s := r.Section(int(length))
+
+		for f := 0; f < int(nframes); f++ {
+			frame := make([]byte, size)
+			for i := 0; i < int(size); i++ {
+				frame[int(size)-i-1] = s.Uint8()
+			}
+			e.WriteFrame(frame)
+		}
+
+		sample := &Sample{
+			Name: "",
+			Data: writer.Reader(),
+		}
+		p.Samples = append(p.Samples, sample)
+	}
+	return nil
+}
+
+func (p *Pack) readSysexData(data []byte) error {
+	switch cmd := data[0]; cmd {
+	case 0x77:
+		// TODO: allocate the full unpacked slice here
+		// We have potentially 2 sections sharing the same sysex command:
+		// - the sessions one
+		// - the samples one
+		// The samples section is identified by the next 8 nibbles: 0x0023b000
+		if bytes.Equal(data[1:9], []byte{0x00, 0x00, 0x02, 0x03, 0x0b, 0x00, 0x00, 0x00}) {
+			p.inSamples = true
+		}
+	case 0x79:
+		if p.inSamples {
+			if len(data) != 294 { // we expect chunks of 256 bytes, encoded in 293
+				panic(fmt.Errorf("wrong size: %d", len(data)))
+			}
+			p.rawSamples = append(p.rawSamples, unpack(data[1:])...)
+		}
+	case 0x7a:
+		if p.inSamples {
+			// TODO: compute and verify the CRC
+			p.parseSamples()
+		}
+	default:
+		return fmt.Errorf("invalid sample sysex cmd: %v", cmd)
+	}
 	return nil
 }
