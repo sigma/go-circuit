@@ -60,6 +60,137 @@ const (
 	CategoryVocal
 )
 
+type Voice struct {
+	PolyphonyMode  byte
+	PortamentoRate byte
+	PreGlide       byte
+	KeyboardOctave byte
+}
+
+type Mixer struct {
+	Osc1Level       byte
+	Osc2Level       byte
+	RingModeLevel12 byte
+	NoiseLevel      byte
+	PreFXLevel      byte
+	PostFXLevel     byte
+}
+
+type Filter struct {
+	Routing    byte
+	Drive      byte
+	DriveType  byte
+	Type       byte
+	Frequency  byte
+	Track      byte
+	Resonance  byte
+	QNormalize byte
+}
+
+type Oscillator struct {
+	Wave             byte
+	WaveInterpolate  byte
+	PulseWidthIndex  byte
+	VirtualSyncDepth byte
+	Density          byte
+	DensityDetune    byte
+	Semitones        byte
+	Cents            byte
+	PitchBend        byte
+}
+
+type ADSR struct {
+	Attack  byte
+	Decay   byte
+	Sustain byte
+	Release byte
+}
+
+type VelocityEnvelope struct {
+	Velocity byte
+	ADSR
+}
+
+type DelayEnvelope struct {
+	Delay byte
+	ADSR
+}
+
+type LFO struct {
+	WaveForm    byte
+	PhaseOffset byte
+	SlewRate    byte
+	Delay       byte
+	DelaySync   byte
+	Rate        byte
+	RateSync    byte
+	Bits        byte
+}
+
+type Band struct {
+	Frequency byte
+	Level     byte
+}
+
+type Equalizer struct {
+	Bass, Mid, Trebble Band
+}
+
+type Distortion struct {
+	Type         byte
+	Compensation byte
+}
+
+type Chorus struct {
+	Type     byte
+	Rate     byte
+	RateSync byte
+	Feedback byte
+	ModDepth byte
+	Delay    byte
+}
+
+type Mod struct {
+	Source1, Source2 byte
+	Depth            byte
+	Destination      byte
+}
+
+type KnobTarget struct {
+	Destination byte
+	Start, End  byte
+	Depth       byte
+}
+
+type Knob struct {
+	Position   byte
+	A, B, C, D KnobTarget
+}
+
+type PatchFormat struct {
+	Name                     [16]byte
+	Category                 Category
+	Genre                    Genre
+	Reserved                 [14]byte
+	Voice                    Voice
+	Osc1, Osc2               Oscillator
+	Mixer                    Mixer
+	Filter                   Filter
+	Envelope1, Envelope2     VelocityEnvelope
+	Envelope3                DelayEnvelope
+	LFO1, LFO2               LFO
+	DistortionLevel          byte
+	FXReserved1              byte
+	ChorusLevel              byte
+	FXReserved2, FXReserved3 byte
+	Equalizer                Equalizer
+	FXReserved               [5]byte
+	Distortion               Distortion
+	Chorus                   Chorus
+	ModMatrix                [20]Mod
+	Macros                   [8]Knob
+}
+
 type Patch struct {
 	data []byte
 }
