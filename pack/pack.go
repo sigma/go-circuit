@@ -25,6 +25,7 @@ import (
 	"github.com/go-audio/wav"
 	"github.com/orcaman/writerseeker"
 	"github.com/sigma/go-circuit/internal/binary"
+	"github.com/sigma/go-circuit/internal/encoding"
 	"github.com/sigma/go-circuit/model"
 	"gitlab.com/gomidi/midi/reader"
 )
@@ -217,31 +218,6 @@ func (p *Pack) readCircuit(r io.Reader) error {
 	return nil
 }
 
-func unpack(data []byte) []byte {
-	res := make([]byte, 256)
-
-	var (
-		loop     byte = 7
-		highBits byte = 0
-		idx      int  = 0
-	)
-	for _, b := range data {
-		if loop < 7 {
-			if (highBits & (1 << loop)) != 0 {
-				b += 0x80
-			}
-			res[idx] = b
-			loop++
-			idx++
-		} else {
-			highBits = b
-			loop = 0
-		}
-	}
-
-	return res
-}
-
 func (p *Pack) parseSamples() error {
 	r := binary.Reader(p.rawSamples)
 	n := int(r.Uint8())
@@ -294,10 +270,11 @@ func (p *Pack) readSysexData(data []byte) error {
 		}
 	case 0x79:
 		if p.inSamples {
-			if len(data) != 294 { // we expect chunks of 256 bytes, encoded in 293
-				panic(fmt.Errorf("wrong size: %d", len(data)))
+			chunk, err := encoding.Low7Decode(data[1:])
+			if err != nil {
+				panic(err)
 			}
-			p.rawSamples = append(p.rawSamples, unpack(data[1:])...)
+			p.rawSamples = append(p.rawSamples, chunk...)
 		}
 	case 0x7a:
 		if p.inSamples {
