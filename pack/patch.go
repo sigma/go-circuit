@@ -85,6 +85,7 @@ type Filter struct {
 	Track      byte
 	Resonance  byte
 	QNormalize byte
+	Env2ToFreq byte
 }
 
 type Oscillator struct {
@@ -167,7 +168,7 @@ type Knob struct {
 	A, B, C, D KnobTarget
 }
 
-type PatchFormat struct {
+type Patch struct {
 	Name                     [16]byte
 	Category                 Category
 	Genre                    Genre
@@ -191,7 +192,7 @@ type PatchFormat struct {
 	Macros                   [8]Knob
 }
 
-type Patch struct {
+type RawPatch struct {
 	data []byte
 }
 
@@ -204,33 +205,33 @@ func patchKind(sysex []byte) *model.Flavor {
 	return nil
 }
 
-func NewPatch(sysex []byte) *Patch {
+func NewPatch(sysex []byte) *RawPatch {
 	if k := patchKind(sysex); k != nil {
 		if len(sysex) == k.SysExSize {
-			return &Patch{
+			return &RawPatch{
 				data: sysex[len(sysex)-340:],
 			}
 		}
-		return &Patch{}
+		return &RawPatch{}
 	}
 	return nil
 }
 
-func (p *Patch) Name() string {
+func (p *RawPatch) Name() string {
 	if p.data == nil {
 		return "Initial Patch"
 	}
 	return strings.TrimSpace(string(p.data[0:16]))
 }
 
-func (p *Patch) Category() Category {
+func (p *RawPatch) Category() Category {
 	if p.data == nil {
 		return CategoryNone
 	}
 	return Category(p.data[16])
 }
 
-func (p *Patch) Genre() Genre {
+func (p *RawPatch) Genre() Genre {
 	if p.data == nil {
 		return GenreNone
 	}
@@ -242,7 +243,7 @@ type PatchConfig struct {
 	Index  byte
 }
 
-func (p *Patch) Format(cfg *PatchConfig) []byte {
+func (p *RawPatch) Format(cfg *PatchConfig) []byte {
 	prelude := append(
 		manufacturerID,
 		0x01,
