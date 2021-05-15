@@ -224,20 +224,6 @@ func (p *RawPatch) Name() string {
 	return strings.TrimSpace(string(p.data[0:16]))
 }
 
-func (p *RawPatch) Category() Category {
-	if p.data == nil {
-		return CategoryNone
-	}
-	return Category(p.data[16])
-}
-
-func (p *RawPatch) Genre() Genre {
-	if p.data == nil {
-		return GenreNone
-	}
-	return Genre(p.data[17])
-}
-
 type PatchConfig struct {
 	Flavor *model.Flavor
 	Index  byte
