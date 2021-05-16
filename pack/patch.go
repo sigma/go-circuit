@@ -114,6 +114,37 @@ type DelayEnvelope struct {
 	ADSR
 }
 
+type FadeMode byte
+
+const (
+	FadeIn FadeMode = iota
+	FadeOut
+	GateIn
+	GateOut
+)
+
+type LFOFlags byte
+
+func (f LFOFlags) OneShot() bool {
+	return f&0x01 != 0
+}
+
+func (f LFOFlags) KeySync() bool {
+	return f&0x02 != 0
+}
+
+func (f LFOFlags) CommonSync() bool {
+	return f&0x04 != 0
+}
+
+func (f LFOFlags) MultiDelayTrigger() bool {
+	return f&0x08 != 0
+}
+
+func (f LFOFlags) FadeMode() FadeMode {
+	return FadeMode((f & 0x30) >> 4)
+}
+
 type LFO struct {
 	WaveForm    byte
 	PhaseOffset byte
@@ -122,7 +153,7 @@ type LFO struct {
 	DelaySync   byte
 	Rate        byte
 	RateSync    byte
-	Bits        byte
+	Flags       LFOFlags
 }
 
 type Band struct {
@@ -228,17 +259,18 @@ type PatchConfig struct {
 func (p *Patch) Format(cfg *PatchConfig) []byte {
 	prelude := append(
 		cfg.Flavor.SysExPatchPrefix(),
-		0x01,
+		0x01, // Replace patch command
 	)
 
 	if cfg.Flavor == model.CircuitTracks {
+		// TODO figure out what those 2 bytes represent. They seem constant so far
 		prelude = append(prelude, 0x7f, 0x7f)
 	}
 
 	prelude = append(
 		prelude,
 		cfg.Index,
-		0x00,
+		0x00, // Reserved byte, always set to 0
 	)
 
 	data := new(bytes.Buffer)
