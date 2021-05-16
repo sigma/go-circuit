@@ -16,6 +16,7 @@ package pack
 
 import (
 	"bytes"
+	"encoding/binary"
 	"strings"
 
 	"github.com/sigma/go-circuit/model"
@@ -169,7 +170,7 @@ type Knob struct {
 }
 
 type Patch struct {
-	Name                     [16]byte
+	PatchName                [16]byte
 	Category                 Category
 	Genre                    Genre
 	Reserved                 [14]byte
@@ -192,10 +193,6 @@ type Patch struct {
 	Macros                   [8]Knob
 }
 
-type RawPatch struct {
-	data []byte
-}
-
 func patchKind(sysex []byte) *model.Flavor {
 	for _, m := range []*model.Flavor{model.Circuit, model.CircuitTracks} {
 		if bytes.Equal(m.SysExPrefix, sysex[:len(m.SysExPrefix)]) {
@@ -205,23 +202,26 @@ func patchKind(sysex []byte) *model.Flavor {
 	return nil
 }
 
-func NewPatch(sysex []byte) *RawPatch {
+func NewPatch(sysex []byte) *Patch {
+	var p Patch
 	if k := patchKind(sysex); k != nil {
 		if len(sysex) == k.SysExSize {
-			return &RawPatch{
-				data: sysex[len(sysex)-340:],
-			}
+			binary.Read(bytes.NewReader(sysex[len(sysex)-340:]), binary.LittleEndian, &p)
 		}
-		return &RawPatch{}
+		return &p
 	}
 	return nil
 }
 
-func (p *RawPatch) Name() string {
-	if p.data == nil {
-		return "Initial Patch"
+func (p *Patch) Name() string {
+	if p == nil {
+		return ""
 	}
-	return strings.TrimSpace(string(p.data[0:16]))
+	name := strings.TrimSpace(string(p.PatchName[:]))
+	if name == "" {
+		name = "Initial Patch"
+	}
+	return name
 }
 
 type PatchConfig struct {
@@ -229,7 +229,7 @@ type PatchConfig struct {
 	Index  byte
 }
 
-func (p *RawPatch) Format(cfg *PatchConfig) []byte {
+func (p *Patch) Format(cfg *PatchConfig) []byte {
 	prelude := append(
 		manufacturerID,
 		0x01,
@@ -247,9 +247,14 @@ func (p *RawPatch) Format(cfg *PatchConfig) []byte {
 		0x00,
 	)
 
+	data := new(bytes.Buffer)
+	if p != nil {
+		binary.Write(data, binary.LittleEndian, p)
+	}
+
 	res := append(
 		prelude,
-		p.data...,
+		data.Bytes()...,
 	)
 	return res
 }

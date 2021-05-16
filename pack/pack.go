@@ -35,7 +35,7 @@ type Pack struct {
 	Color    string
 	Projects []*Project
 	Samples  []*Sample
-	Patches  []*RawPatch
+	Patches  []*Patch
 
 	rawSamples []byte
 	inSamples  bool
@@ -165,7 +165,7 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 	for i := 0; i < f.NumberPatches; i++ {
 		fname := fmt.Sprintf("patches/patch_%d.syx", i)
 
-		patch := &RawPatch{}
+		var patch *Patch = nil
 		if i < len(p.Patches) {
 			patch = p.Patches[i]
 		}
