@@ -15,32 +15,35 @@
 package encoding
 
 import (
-	"math"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func Low7Decode(data []byte) ([]byte, error) {
-	overhead := int(math.Ceil(float64(len(data)) / 8))
-	size := len(data) - overhead
-	res := make([]byte, size)
-
-	var (
-		loop     byte = 7
-		highBits byte = 0
-		idx      int  = 0
-	)
-	for _, b := range data {
-		if loop < 7 {
-			if (highBits & (1 << loop)) != 0 {
-				b += 0x80
-			}
-			res[idx] = b
-			loop++
-			idx++
-		} else {
-			highBits = b
-			loop = 0
-		}
+func TestLow7Decode(t *testing.T) {
+	data := []struct {
+		name     string
+		enc, dec []byte
+	}{
+		{
+			name: "single block",
+			enc:  []byte{0x18, 0x40, 0x01, 0x10, 0x00, 0x3b, 0x00, 0x00},
+			dec:  []byte{ /**/ 0x40, 0x01, 0x10, 0x80, 0xbb, 0x00, 0x00},
+		},
 	}
 
-	return res, nil
+	for _, tt := range data {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			dec, err := Low7Decode(tt.enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.dec, dec); diff != "" {
+				t.Errorf("Low7Decode() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
