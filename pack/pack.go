@@ -198,8 +198,8 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 }
 
 func (p *Pack) readCircuit(r io.Reader) error {
-	samplePrefix := append(manufacturerID, 0x00)
-	patchPrefix := append(manufacturerID, 0x01, 0x60)
+	samplePrefix := model.Circuit.SysExSamplePrefix()
+	patchPrefix := model.Circuit.SysExPatchPrefix()
 
 	syxReader := func(_ *reader.Position, data []byte) {
 		if bytes.Equal(samplePrefix, data[:len(samplePrefix)]) {

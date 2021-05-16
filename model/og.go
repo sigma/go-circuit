@@ -16,15 +16,10 @@ package model
 
 var (
 	Circuit = &Flavor{
-		Name: "Novation Circuit",
-		ID:   0x60,
-		SysExPrefix: []byte{
-			0x00, 0x20, 0x29,
-			0x01,
-			0x60,
-		},
+		Name:           "Novation Circuit",
+		ID:             0x60,
 		SysExSize:      348,
-		NumberProjects: 64,
+		NumberProjects: 32,
 		NumberSamples:  64,
 		NumberPatches:  64,
 	}

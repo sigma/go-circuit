@@ -22,10 +22,6 @@ import (
 	"github.com/sigma/go-circuit/model"
 )
 
-var (
-	manufacturerID = []byte{0x00, 0x20, 0x29}
-)
-
 type Genre byte
 
 const (
@@ -195,7 +191,7 @@ type Patch struct {
 
 func patchKind(sysex []byte) *model.Flavor {
 	for _, m := range []*model.Flavor{model.Circuit, model.CircuitTracks} {
-		if bytes.Equal(m.SysExPrefix, sysex[:len(m.SysExPrefix)]) {
+		if prefix := m.SysExPatchPrefix(); bytes.Equal(prefix, sysex[:len(prefix)]) {
 			return m
 		}
 	}
@@ -231,9 +227,7 @@ type PatchConfig struct {
 
 func (p *Patch) Format(cfg *PatchConfig) []byte {
 	prelude := append(
-		manufacturerID,
-		0x01,
-		cfg.Flavor.ID,
+		cfg.Flavor.SysExPatchPrefix(),
 		0x01,
 	)
 

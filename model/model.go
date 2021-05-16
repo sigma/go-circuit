@@ -14,12 +14,25 @@
 
 package model
 
+var (
+	VendorID      = []byte{0x00, 0x20, 0x29}
+	SampleID byte = 0x00
+	SynthID  byte = 0x01
+)
+
 type Flavor struct {
 	Name           string
 	ID             byte
-	SysExPrefix    []byte
 	SysExSize      int
 	NumberProjects int
 	NumberSamples  int
 	NumberPatches  int
+}
+
+func (f *Flavor) SysExSamplePrefix() []byte {
+	return append(VendorID, SampleID)
+}
+
+func (f *Flavor) SysExPatchPrefix() []byte {
+	return append(VendorID, SynthID, f.ID)
 }

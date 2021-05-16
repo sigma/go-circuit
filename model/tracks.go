@@ -16,13 +16,8 @@ package model
 
 var (
 	CircuitTracks = &Flavor{
-		Name: "Circuit Tracks",
-		ID:   0x64,
-		SysExPrefix: []byte{
-			0x00, 0x20, 0x29,
-			0x01,
-			0x64,
-		},
+		Name:           "Circuit Tracks",
+		ID:             0x64,
 		SysExSize:      350,
 		NumberProjects: 64,
 		NumberSamples:  64,
