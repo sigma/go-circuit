@@ -15,26 +15,38 @@
 package encoding
 
 import (
-	"bufio"
+	"fmt"
 	"io"
 )
 
-func readByteReader(r io.ByteReader, p []byte) (n int, err error) {
-	for i := range p {
-		next, e := r.ReadByte()
-		if e != nil {
-			err = e
-			return
-		}
-		p[i] = next
-		n++
-	}
-	return
+type NybbleReader struct {
+	r io.ByteReader
 }
 
-func readerToByteReader(r io.Reader) io.ByteReader {
-	if br, ok := r.(io.ByteReader); ok {
-		return br
-	}
-	return bufio.NewReader(r)
+func NewNybbleReader(r io.Reader) *NybbleReader {
+	return &NybbleReader{r: readerToByteReader(r)}
 }
+
+func (r *NybbleReader) ReadByte() (byte, error) {
+	high, err := r.r.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+
+	low, err := r.r.ReadByte()
+	if err != nil {
+		if err != io.EOF {
+			return 0, err
+		}
+		return 0, fmt.Errorf("NybbleReader expects an even number of nybbles")
+	}
+
+	return high<<4 | low, nil
+}
+
+func (r *NybbleReader) Read(p []byte) (n int, err error) {
+	return readByteReader(r, p)
+}
+
+var _ io.ByteReader = (*NybbleReader)(nil)
+var _ io.Reader = (*NybbleReader)(nil)

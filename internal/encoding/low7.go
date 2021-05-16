@@ -15,7 +15,6 @@
 package encoding
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 )
@@ -27,10 +26,7 @@ type Low7Reader struct {
 }
 
 func NewLow7Reader(r io.Reader) *Low7Reader {
-	if br, ok := r.(io.ByteReader); ok {
-		return &Low7Reader{r: br}
-	}
-	return &Low7Reader{r: bufio.NewReader(r)}
+	return &Low7Reader{r: readerToByteReader(r)}
 }
 
 func (r *Low7Reader) ReadByte() (byte, error) {

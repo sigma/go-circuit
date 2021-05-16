@@ -264,8 +264,13 @@ func (p *Pack) readSysexData(data []byte) error {
 		// We have potentially 2 sections sharing the same sysex command:
 		// - the sessions one
 		// - the samples one
-		// The samples section is identified by the next 8 nibbles: 0x0023b000
-		if bytes.Equal(data[1:9], []byte{0x00, 0x00, 0x02, 0x03, 0x0b, 0x00, 0x00, 0x00}) {
+		// The samples section is identified by the next 8 nybbles: 0x0023b000
+		r := encoding.NewNybbleReader(bytes.NewBuffer(data[1:9]))
+		chunk, err := io.ReadAll(r)
+		if err != nil {
+			panic(err)
+		}
+		if bytes.Equal(chunk, []byte{0x00, 0x23, 0xb0, 0x00}) {
 			p.inSamples = true
 		}
 	case 0x79:
