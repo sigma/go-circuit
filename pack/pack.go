@@ -205,7 +205,7 @@ func (p *Pack) readCircuit(r io.Reader) error {
 		if bytes.Equal(samplePrefix, data[:len(samplePrefix)]) {
 			p.readSysexData(data[len(samplePrefix):])
 		} else if bytes.Equal(patchPrefix, data[:len(patchPrefix)]) {
-			p.Patches = append(p.Patches, &RawPatch{data: data[8:]})
+			p.Patches = append(p.Patches, NewPatch(data))
 		}
 	}
 
