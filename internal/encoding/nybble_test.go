@@ -51,7 +51,7 @@ func TestNybbleReader(t *testing.T) {
 				t.Fatal(err)
 			}
 			if diff := cmp.Diff(tt.dec, dec); diff != "" {
-				t.Errorf("Low7Decode() mismatch (-want +got):\n%s", diff)
+				t.Errorf("ReadAll() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
