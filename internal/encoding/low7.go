@@ -16,6 +16,7 @@ package encoding
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 )
 
@@ -33,17 +34,23 @@ func NewLow7Reader(r io.Reader) *Low7Reader {
 }
 
 func (r *Low7Reader) ReadByte() (byte, error) {
+	atLeast1MoreBit := false
+
 	if r.nBits == 0 {
 		bits, err := r.r.ReadByte()
 		if err != nil {
 			return 0, err
 		}
+		atLeast1MoreBit = true
 		r.highBits = bits
 		r.nBits = 7
 	}
 
 	next, err := r.r.ReadByte()
 	if err != nil {
+		if err == io.EOF && atLeast1MoreBit {
+			return 0, fmt.Errorf("extra high bits byte found: %x", r.highBits)
+		}
 		return 0, err
 	}
 

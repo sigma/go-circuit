@@ -24,13 +24,20 @@ import (
 
 func TestLow7Reader(t *testing.T) {
 	data := []struct {
-		name     string
-		enc, dec []byte
+		name       string
+		enc, dec   []byte
+		shouldFail bool
 	}{
 		{
 			name: "single block",
 			enc:  []byte{0x18, 0x40, 0x01, 0x10, 0x00, 0x3b, 0x00, 0x00},
 			dec:  []byte{ /**/ 0x40, 0x01, 0x10, 0x80, 0xbb, 0x00, 0x00},
+		},
+		{
+			name:       "trailing high bits",
+			enc:        []byte{0x18, 0x40, 0x01, 0x10, 0x00, 0x3b, 0x00, 0x00, 0x01},
+			dec:        []byte{ /**/ 0x40, 0x01, 0x10, 0x80, 0xbb, 0x00, 0x00},
+			shouldFail: true,
 		},
 	}
 
@@ -40,7 +47,7 @@ func TestLow7Reader(t *testing.T) {
 			t.Parallel()
 
 			dec, err := io.ReadAll(NewLow7Reader(bytes.NewBuffer(tt.enc)))
-			if err != nil {
+			if (err != nil) != tt.shouldFail {
 				t.Fatal(err)
 			}
 			if diff := cmp.Diff(tt.dec, dec); diff != "" {
