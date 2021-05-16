@@ -54,16 +54,7 @@ func (r *Low7Reader) ReadByte() (byte, error) {
 }
 
 func (r *Low7Reader) Read(p []byte) (n int, err error) {
-	for i := range p {
-		next, e := r.ReadByte()
-		if e != nil {
-			err = e
-			return
-		}
-		p[i] = next
-		n++
-	}
-	return
+	return readByteReader(r, p)
 }
 
 var _ io.ByteReader = (*Low7Reader)(nil)
