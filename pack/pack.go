@@ -270,7 +270,8 @@ func (p *Pack) readSysexData(data []byte) error {
 		}
 	case 0x79:
 		if p.inSamples {
-			chunk, err := encoding.Low7Decode(data[1:])
+			r := encoding.NewLow7Reader(bytes.NewBuffer(data[1:]))
+			chunk, err := io.ReadAll(r)
 			if err != nil {
 				panic(err)
 			}

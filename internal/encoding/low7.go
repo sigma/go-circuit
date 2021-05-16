@@ -15,32 +15,56 @@
 package encoding
 
 import (
-	"math"
+	"bufio"
+	"io"
 )
 
-func Low7Decode(data []byte) ([]byte, error) {
-	overhead := int(math.Ceil(float64(len(data)) / 8))
-	size := len(data) - overhead
-	res := make([]byte, size)
+type Low7Reader struct {
+	r        io.ByteReader
+	highBits byte
+	nBits    byte
+}
 
-	var (
-		loop     byte = 7
-		highBits byte = 0
-		idx      int  = 0
-	)
-	for _, b := range data {
-		if loop < 7 {
-			if (highBits & (1 << loop)) != 0 {
-				b += 0x80
-			}
-			res[idx] = b
-			loop++
-			idx++
-		} else {
-			highBits = b
-			loop = 0
+func NewLow7Reader(r io.Reader) *Low7Reader {
+	if br, ok := r.(io.ByteReader); ok {
+		return &Low7Reader{r: br}
+	}
+	return &Low7Reader{r: bufio.NewReader(r)}
+}
+
+func (r *Low7Reader) ReadByte() (byte, error) {
+	if r.nBits == 0 {
+		bits, err := r.r.ReadByte()
+		if err != nil {
+			return 0, err
 		}
+		r.highBits = bits
+		r.nBits = 7
 	}
 
-	return res, nil
+	next, err := r.r.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+
+	high := (r.highBits & 0x01) * 0x80
+	r.highBits = r.highBits >> 1
+	r.nBits--
+	return high | next, nil
 }
+
+func (r *Low7Reader) Read(p []byte) (n int, err error) {
+	for i := range p {
+		next, e := r.ReadByte()
+		if e != nil {
+			err = e
+			return
+		}
+		p[i] = next
+		n++
+	}
+	return
+}
+
+var _ io.ByteReader = (*Low7Reader)(nil)
+var _ io.Reader = (*Low7Reader)(nil)

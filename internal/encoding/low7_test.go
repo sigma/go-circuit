@@ -15,12 +15,14 @@
 package encoding
 
 import (
+	"bytes"
+	"io"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestLow7Decode(t *testing.T) {
+func TestLow7Reader(t *testing.T) {
 	data := []struct {
 		name     string
 		enc, dec []byte
@@ -37,7 +39,7 @@ func TestLow7Decode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			dec, err := Low7Decode(tt.enc)
+			dec, err := io.ReadAll(NewLow7Reader(bytes.NewBuffer(tt.enc)))
 			if err != nil {
 				t.Fatal(err)
 			}
