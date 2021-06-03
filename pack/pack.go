@@ -200,10 +200,11 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 func (p *Pack) readCircuit(r io.Reader) error {
 	samplePrefix := model.Circuit.SysExSamplePrefix()
 	patchPrefix := model.Circuit.SysExPatchPrefix()
+	var readErr error
 
 	syxReader := func(_ *reader.Position, data []byte) {
 		if bytes.Equal(samplePrefix, data[:len(samplePrefix)]) {
-			p.readSysexData(data[len(samplePrefix):])
+			readErr = p.readSysexData(data[len(samplePrefix):])
 		} else if bytes.Equal(patchPrefix, data[:len(patchPrefix)]) {
 			p.Patches = append(p.Patches, NewPatch(data))
 		}
@@ -215,11 +216,14 @@ func (p *Pack) readCircuit(r io.Reader) error {
 		return err
 	}
 
-	return nil
+	return readErr
 }
 
-func (p *Pack) parseSamples() error {
+func (p *Pack) parseSamples(crc uint32) error {
 	r := binary.Reader(p.rawSamples)
+	if err := r.CheckCRC(crc); err != nil {
+		return err
+	}
 	n := int(r.Uint8())
 	for i := 0; i < n; i++ {
 		channels := r.Uint8()
@@ -268,7 +272,7 @@ func (p *Pack) readSysexData(data []byte) error {
 		r := encoding.NewNybbleReader(bytes.NewBuffer(data[1:9]))
 		chunk, err := io.ReadAll(r)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if bytes.Equal(chunk, []byte{0x00, 0x23, 0xb0, 0x00}) {
 			p.inSamples = true
@@ -278,14 +282,22 @@ func (p *Pack) readSysexData(data []byte) error {
 			r := encoding.NewLow7Reader(bytes.NewBuffer(data[1:]))
 			chunk, err := io.ReadAll(r)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			p.rawSamples = append(p.rawSamples, chunk...)
 		}
 	case 0x7a:
 		if p.inSamples {
-			// TODO: compute and verify the CRC
-			p.parseSamples()
+			r := encoding.NewNybbleReader((bytes.NewBuffer(data[1:9])))
+			body, err := io.ReadAll(r)
+			if err != nil {
+				return err
+			}
+
+			crc := binary.Reader(body)
+			if err := p.parseSamples(crc.BEUint32()); err != nil {
+				return err
+			}
 		}
 	default:
 		return fmt.Errorf("invalid sample sysex cmd: %v", cmd)

@@ -16,6 +16,8 @@ package binary
 
 import (
 	"encoding/binary"
+	"fmt"
+	"hash/crc32"
 )
 
 type Reader []byte
@@ -32,8 +34,22 @@ func (r *Reader) Uint32() uint32 {
 	return v
 }
 
+func (r *Reader) BEUint32() uint32 {
+	v := binary.BigEndian.Uint32(*r)
+	*r = (*r)[4:]
+	return v
+}
+
 func (r *Reader) Section(n int) *Reader {
 	r2 := (*r)[:n]
 	*r = (*r)[n:]
 	return &r2
+}
+
+func (r *Reader) CheckCRC(crc uint32) error {
+	c := crc32.ChecksumIEEE(*r)
+	if c != crc {
+		return fmt.Errorf("wrong CRC: want %x, got %x", c, crc)
+	}
+	return nil
 }

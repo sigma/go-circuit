@@ -32,7 +32,10 @@ func main() {
 	p := &pack.Pack{
 		Name: "pack",
 	}
-	p.Read(in)
+
+	if err := p.Read(in); err != nil {
+		log.Fatal(err)
+	}
 
 	out, err := os.Create(os.Args[2])
 	if err != nil {
@@ -40,5 +43,7 @@ func main() {
 	}
 	defer out.Close()
 
-	p.Write(out, model.CircuitTracks)
+	if err := p.Write(out, model.CircuitTracks); err != nil {
+		log.Fatal(err)
+	}
 }
