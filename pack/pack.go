@@ -228,7 +228,7 @@ func (p *Pack) parseSamples(crc uint32) error {
 	for i := 0; i < n; i++ {
 		channels := r.Uint8()
 		bits := r.Uint8()
-		rate := r.Uint32()
+		rate := r.LittleEndian().Uint32()
 
 		writer := &writerseeker.WriterSeeker{}
 
@@ -239,7 +239,7 @@ func (p *Pack) parseSamples(crc uint32) error {
 			1)
 		defer e.Close()
 
-		length := r.Uint32()
+		length := r.LittleEndian().Uint32()
 		size := uint32(bits / 8)
 		nframes := length / size
 		s := r.Section(int(length))
@@ -295,7 +295,7 @@ func (p *Pack) readSysexData(data []byte) error {
 			}
 
 			crc := binary.Reader(body)
-			if err := p.parseSamples(crc.BEUint32()); err != nil {
+			if err := p.parseSamples(crc.BigEndian().Uint32()); err != nil {
 				return err
 			}
 		}

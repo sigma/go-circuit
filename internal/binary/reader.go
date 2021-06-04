@@ -22,27 +22,44 @@ import (
 
 type Reader []byte
 
+func (r *Reader) advance(n int) {
+	*r = (*r)[n:]
+}
+
 func (r *Reader) Uint8() uint8 {
 	v := (*r)[0]
-	*r = (*r)[1:]
+	r.advance(1)
 	return v
 }
 
-func (r *Reader) Uint32() uint32 {
-	v := binary.LittleEndian.Uint32(*r)
-	*r = (*r)[4:]
+type ByteOrder struct {
+	r *Reader
+	o binary.ByteOrder
+}
+
+func (b *ByteOrder) Uint32() uint32 {
+	v := b.o.Uint32((*b.r)[:4])
+	b.r.advance(4)
 	return v
 }
 
-func (r *Reader) BEUint32() uint32 {
-	v := binary.BigEndian.Uint32(*r)
-	*r = (*r)[4:]
-	return v
+func (r *Reader) BigEndian() *ByteOrder {
+	return &ByteOrder{
+		r: r,
+		o: binary.BigEndian,
+	}
+}
+
+func (r *Reader) LittleEndian() *ByteOrder {
+	return &ByteOrder{
+		r: r,
+		o: binary.LittleEndian,
+	}
 }
 
 func (r *Reader) Section(n int) *Reader {
 	r2 := (*r)[:n]
-	*r = (*r)[n:]
+	r.advance(n)
 	return &r2
 }
 
