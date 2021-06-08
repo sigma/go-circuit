@@ -233,7 +233,9 @@ func NewPatch(sysex []byte) *Patch {
 	var p Patch
 	if k := patchKind(sysex); k != nil {
 		if len(sysex) == k.SysExSize {
-			binary.Read(bytes.NewReader(sysex[len(sysex)-340:]), binary.LittleEndian, &p)
+			if err := binary.Read(bytes.NewReader(sysex[len(sysex)-340:]), binary.LittleEndian, &p); err != nil {
+				return nil
+			}
 		}
 		return &p
 	}
@@ -275,7 +277,9 @@ func (p *Patch) Format(cfg *PatchConfig) []byte {
 
 	data := new(bytes.Buffer)
 	if p != nil {
-		binary.Write(data, binary.LittleEndian, p)
+		if err := binary.Write(data, binary.LittleEndian, p); err != nil {
+			return nil
+		}
 	}
 
 	res := append(

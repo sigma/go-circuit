@@ -69,7 +69,10 @@ func (p *Pack) Read(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	buf.UnreadByte()
+
+	if err := buf.UnreadByte(); err != nil {
+		return err
+	}
 
 	if c == 0x50 {
 		return fmt.Errorf("unsupported input format: %s", model.CircuitTracks.Name)
@@ -105,7 +108,7 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 		Version: "2.0",
 	}
 
-	zw.CreateHeader(&zip.FileHeader{
+	_, _ = zw.CreateHeader(&zip.FileHeader{
 		Name: "projects/",
 	})
 
@@ -123,10 +126,12 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		w.Write(project.Format(&ProjectConfig{Flavor: f}))
+		if _, err := w.Write(project.Format(&ProjectConfig{Flavor: f})); err != nil {
+			return err
+		}
 	}
 
-	zw.CreateHeader(&zip.FileHeader{
+	_, _ = zw.CreateHeader(&zip.FileHeader{
 		Name: "samples/",
 	})
 
@@ -154,11 +159,13 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 			if err != nil {
 				return err
 			}
-			w.Write(data)
+			if _, err := w.Write(data); err != nil {
+				return err
+			}
 		}
 	}
 
-	zw.CreateHeader(&zip.FileHeader{
+	_, _ = zw.CreateHeader(&zip.FileHeader{
 		Name: "patches/",
 	})
 
@@ -179,9 +186,15 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		w.Write([]byte{0xf0})
-		w.Write(patch.Format(&PatchConfig{Flavor: f, Index: byte(i)}))
-		w.Write([]byte{0xf7})
+		if _, err := w.Write([]byte{0xf0}); err != nil {
+			return err
+		}
+		if _, err := w.Write(patch.Format(&PatchConfig{Flavor: f, Index: byte(i)})); err != nil {
+			return err
+		}
+		if _, err := w.Write([]byte{0xf7}); err != nil {
+			return err
+		}
 	}
 
 	iw, err := zw.Create("index.json")
@@ -192,7 +205,9 @@ func (p *Pack) writeCircuitTracks(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	iw.Write(body)
+	if _, err := iw.Write(body); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -249,7 +264,9 @@ func (p *Pack) parseSamples(crc uint32) error {
 			for i := 0; i < int(size); i++ {
 				frame[int(size)-i-1] = s.Uint8()
 			}
-			e.WriteFrame(frame)
+			if err := e.WriteFrame(frame); err != nil {
+				return err
+			}
 		}
 
 		sample := &Sample{
