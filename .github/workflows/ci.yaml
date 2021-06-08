@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ["1.16", "1.15", "1.14", "1.13"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v2
+      - name: Check copyright
+        uses: sigma/addlicense@v1
+      - name: Run build
+        run: go build ./...
+      - name: Run testing
+        run: go test -v ./...
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      - name: Compute coverage
+        run: go test -v -covermode=count -coverprofile=coverage.out
+      - uses: jandelgado/gcov2lcov-action@v1.0.8
+      - uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.github_token }}
+          path-to-lcov: coverage.lcov
