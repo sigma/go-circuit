@@ -1,4 +1,4 @@
-module github.com/sigma/go-circuit
+module yrh.dev/circuit
 
 go 1.16
 

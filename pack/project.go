@@ -14,7 +14,7 @@
 
 package pack
 
-import "github.com/sigma/go-circuit/model"
+import "yrh.dev/circuit/model"
 
 var (
 	emptyProject = []byte{

@@ -19,7 +19,7 @@ import (
 	"encoding/binary"
 	"strings"
 
-	"github.com/sigma/go-circuit/model"
+	"yrh.dev/circuit/model"
 )
 
 type Genre byte

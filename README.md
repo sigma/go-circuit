@@ -1,4 +1,4 @@
-# go-circuit
+# yrh.dev/circuit
 
 This repository contains helpers to interact with various versions of the [Novation Circuit](https://novationmusic.com/en/circuit) groovebox.
 

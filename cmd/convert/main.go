@@ -18,8 +18,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/sigma/go-circuit/model"
-	"github.com/sigma/go-circuit/pack"
+	"yrh.dev/circuit/model"
+	"yrh.dev/circuit/pack"
 )
 
 func main() {

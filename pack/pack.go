@@ -24,10 +24,10 @@ import (
 
 	"github.com/go-audio/wav"
 	"github.com/orcaman/writerseeker"
-	"github.com/sigma/go-circuit/internal/binary"
-	"github.com/sigma/go-circuit/internal/encoding"
-	"github.com/sigma/go-circuit/model"
 	"gitlab.com/gomidi/midi/reader"
+	"yrh.dev/circuit/internal/binary"
+	"yrh.dev/circuit/internal/encoding"
+	"yrh.dev/circuit/model"
 )
 
 type Pack struct {
